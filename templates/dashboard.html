@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <title>IoT Dashboard</title>
+  <style>
+    body { background: #0d0f14; color: #e0e6f0; font-family: Arial, sans-serif; padding: 20px; }
+    h1 { color: #1D9E75; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    .card { background: #10131a; border: 1px solid #1e2535; border-radius: 10px; padding: 16px; }
+    .label { font-size: 11px; color: #5a6a80; text-transform: uppercase; margin-bottom: 6px; }
+    .val { font-size: 28px; font-weight: bold; }
+    .green { color: #1D9E75; }
+    .red { color: #D85A30; }
+    .amber { color: #BA7517; }
+    .blue { color: #378ADD; }
+    .banner { padding: 10px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; }
+    .banner.ok { background: #0f2e1e; color: #1D9E75; border: 1px solid #1D9E75; }
+    .banner.danger { background: #2e1510; color: #D85A30; border: 1px solid #D85A30; }
+    .banner.warn { background: #2e2010; color: #BA7517; border: 1px solid #BA7517; }
+    .sensors { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .sensor-card { background: #10131a; border: 1px solid #1e2535; border-radius: 10px; padding: 20px; }
+    .sensor-card.danger { border-color: #D85A30; }
+    .sensor-card.warn { border-color: #BA7517; }
+    .big { font-size: 42px; font-weight: bold; margin: 10px 0; }
+    .bar-track { height: 8px; background: #1e2535; border-radius: 4px; margin: 10px 0; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s, background 0.5s; }
+    .sub { font-size: 12px; color: #5a6a80; }
+    .log { background: #10131a; border: 1px solid #1e2535; border-radius: 10px; padding: 16px; max-height: 160px; overflow-y: auto; }
+    .log-item { font-size: 12px; padding: 4px 0; border-bottom: 1px solid #1a1e28; }
+    .log-item.danger { color: #D85A30; }
+    .log-item.warn { color: #BA7517; }
+    .log-item.ok { color: #5a6a80; }
+    .section-title { font-size: 11px; color: #5a6a80; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; border-bottom: 1px solid #1e2535; padding-bottom: 6px; }
+  </style>
+</head>
+<body>
+
+<h1>● IoT Monitoring Dashboard</h1>
+
+<div class="grid">
+  <div class="card">
+    <div class="label">Temperature</div>
+    <div class="val green" id="m-temp">--</div>
+  </div>
+  <div class="card">
+    <div class="label">Motion</div>
+    <div class="val" id="m-motion">--</div>
+  </div>
+  <div class="card">
+    <div class="label">Total Alerts</div>
+    <div class="val red" id="m-alerts">0</div>
+  </div>
+  <div class="card">
+    <div class="label">Last Updated</div>
+    <div class="val blue" id="m-time" style="font-size:14px; margin-top:8px;">--</div>
+  </div>
+</div>
+
+<div class="banner ok" id="banner">● Waiting for sensor data...</div>
+
+<div class="section-title">Sensor Readings</div>
+<div class="sensors">
+  <div class="sensor-card" id="temp-card">
+    <div class="label">Temperature — Sensor A</div>
+    <div class="big green" id="temp-val">--°C</div>
+    <div class="bar-track"><div class="bar-fill" id="temp-bar" style="width:0%;background:#1D9E75;"></div></div>
+    <div class="sub">Threshold: 40°C | Last: <span id="temp-time">--</span></div>
+  </div>
+  <div class="sensor-card" id="motion-card">
+    <div class="label">Motion — Sensor C</div>
+    <div class="big green" id="motion-val" style="font-size:30px;">IDLE</div>
+    <div class="sub" style="margin-top:20px;">Last event: <span id="motion-time">--</span></div>
+  </div>
+</div>
+
+<div class="section-title">Alert Log</div>
+<div class="log" id="log-box">
+  <div class="log-item ok">Waiting for alerts...</div>
+</div>
+
+<script>
+function updateDashboard(data) {
+  var temp = data.temperature;
+  var motion = data.motion;
+
+  document.getElementById('m-temp').textContent = temp.value + '°C';
+  document.getElementById('m-motion').textContent = motion.detected ? 'DETECTED' : 'CLEAR';
+  document.getElementById('m-motion').className = 'val ' + (motion.detected ? 'red' : 'green');
+  document.getElementById('m-alerts').textContent = data.alerts_count;
+  document.getElementById('m-time').textContent = temp.timestamp ? temp.timestamp.split(' ')[1] : '--';
+
+  var tv = temp.value;
+  var pct = Math.min(100, ((tv - 18) / 32) * 100);
+  var color = tv > 40 ? '#D85A30' : tv > 30 ? '#BA7517' : '#1D9E75';
+  var cls = tv > 40 ? 'red' : tv > 30 ? 'amber' : 'green';
+
+  document.getElementById('temp-val').textContent = tv + '°C';
+  document.getElementById('temp-val').className = 'big ' + cls;
+  document.getElementById('temp-bar').style.width = pct + '%';
+  document.getElementById('temp-bar').style.background = color;
+  document.getElementById('temp-time').textContent = temp.timestamp ? temp.timestamp.split(' ')[1] : '--';
+  document.getElementById('temp-card').className = temp.alert ? 'sensor-card danger' : 'sensor-card';
+
+  document.getElementById('motion-val').textContent = motion.detected ? 'DETECTED' : 'IDLE';
+  document.getElementById('motion-val').className = 'big ' + (motion.detected ? 'red' : 'green');
+  document.getElementById('motion-card').className = motion.detected ? 'sensor-card warn' : 'sensor-card';
+  document.getElementById('motion-time').textContent = motion.timestamp ? motion.timestamp.split(' ')[1] : '--';
+
+  var banner = document.getElementById('banner');
+  if (temp.alert) {
+    banner.className = 'banner danger';
+    banner.textContent = '● ALERT: ' + temp.alert_message;
+  } else if (motion.detected) {
+    banner.className = 'banner warn';
+    banner.textContent = '● WARNING: Motion detected on Sensor C';
+  } else {
+    banner.className = 'banner ok';
+    banner.textContent = '● All sensors nominal';
+  }
+
+  if (data.alerts_log && data.alerts_log.length > 0) {
+    var box = document.getElementById('log-box');
+    box.innerHTML = '';
+    data.alerts_log.slice().reverse().forEach(function(a) {
+      var d = document.createElement('div');
+      d.className = 'log-item ' + a.type;
+      d.textContent = '[' + a.time + '] ' + a.message;
+      box.appendChild(d);
+    });
+  }
+}
+
+function fetchData() {
+  fetch('/api/data')
+    .then(function(r) { return r.json(); })
+    .then(function(data) { updateDashboard(data); })
+    .catch(function(err) { console.error('Error:', err); });
+}
+
+fetchData();
+setInterval(fetchData, 2000);
+</script>
+
+</body>
+</html>
