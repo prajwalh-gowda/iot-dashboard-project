@@ -1,5 +1,7 @@
-# IoT MQTT Dashboard
 
+## Preview
+![Dashboard](screenshot.png)
+# IoT MQTT Dashboard
 ## Overview
 Real-time IoT dashboard that monitors sensor data using MQTT protocol.
 
